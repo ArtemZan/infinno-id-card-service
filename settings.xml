@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.1.0 http://maven.apache.org/xsd/settings-1.1.0.xsd" xmlns="http://maven.apache.org/SETTINGS/1.1.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <servers>
+    <server>
+        <username>artifactory</username>
+        <password>sdfljhsdkfugsliu4kgrfluwa.ger8ot2qg3p94wietugqp394wtueg</password>
+        <id>central2</id>
+    </server>
+  </servers>
+  <profiles>
+    <profile>
+      <repositories>
+         <repository>
+          <id>central</id>
+          <name>libs-release</name>
+          <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <repository>
+          <id>central2</id>
+          <name>libs-release</name>
+          <url>https://repo.infinno.com/artifactory/libs-release</url>
+        </repository>
+      </repositories>
+      <id>artifactory</id>
+    </profile>
+  </profiles>
+  <activeProfiles>
+    <activeProfile>artifactory</activeProfile>
+  </activeProfiles>
+</settings>
