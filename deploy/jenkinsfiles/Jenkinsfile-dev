@@ -1,0 +1,42 @@
+pipeline{
+  environment {
+  	backendVersion = "v.1"
+    namespace = "id-cards-service"
+    values = "values-dev.yaml"
+    image="id-cards-service/backend-dev"
+    chartname = "id-cards-service"
+  	bitbucketCredentialsId = 'Bitbucket2'
+  	registry = "https://repo.infn.dev/"
+    registryHttp = "repo.infn.dev/"
+    registryCredential = "InfinnoDockerRepo"
+    server = 'https://35.190.211.135'
+    clusterConfigId = 'Apipax-clusters'
+    repoCredentials = credentials("InfinnoDockerRepo")
+    dockerfilepath = "deploy/Dockerfile"
+    pathname = "deploy/helm/chart/"
+    mysql = credentials("MysqlSimple")
+  }
+  agent any
+
+  stages {
+     stage("Build") {
+        steps {
+        	sh 'mvn -B -s settings.xml clean install -DskipTests=true'
+        }
+      }
+      stage('Building trm-backend image') {
+        steps{
+            script {
+              sh 'buildah bud --platform="linux/amd64" --isolation=chroot --storage-opt "overlay.mount_program=/usr/bin/fuse-overlayfs" --storage-opt ignore_chown_errors=true -t $registryHttp$image:$backendVersion -f $dockerfilepath . && buildah push $registryHttp$image:$backendVersion'
+            }
+         }
+      }
+      stage('Install helm') {
+         steps{
+             withKubeConfig([credentialsId: clusterConfigId, serverUrl: server]) {
+                sh 'helm upgrade -i -f $pathname$values --set app.image=$image:$backendVersion --set repo.username=$repoCredentials_USR --set repo.password=$repoCredentials_PSW --set app.db.user=$mysql_USR --set app.db.pass=$mysql_PSW -n $namespace $chartname $pathname'
+             }
+         }
+      }
+   }
+}

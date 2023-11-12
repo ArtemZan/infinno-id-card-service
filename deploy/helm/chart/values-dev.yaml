@@ -1,0 +1,3 @@
+app:
+  contextpath: /id-cards-service/
+  profile: helm

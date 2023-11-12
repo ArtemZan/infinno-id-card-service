@@ -1,0 +1,46 @@
+pipeline{
+  environment {
+  	
+    sonarCredentials='id-cards-service-sonarqube'
+    sonarProjectKey="id-cards-service"
+    sonarProjectName="id-cards-service"
+    namespace = "id-cards-service-test"
+    image="id-cards-service/backend-test"
+
+    chartname = "id-cards-service"
+  	bitbucketCredentialsId = 'Bitbucket2'
+  	registry = "https://repo.infn.dev/"
+    registryHttp = "repo.infn.dev/"
+    registryCredential = "InfinnoDockerRepo"
+    server = 'https://35.190.211.135'
+    clusterConfigId = 'Apipax-clusters'
+    repoCredentials = credentials("InfinnoDockerRepo")
+    dockerfilepath = "deploy/Dockerfile"
+    pathname = "deploy/helm/chart"
+    mysql = credentials("MysqlSimple")
+  }
+  agent any
+
+  stages {
+     stage("Build") {
+        steps {
+        	sh 'mvn -B -s settings.xml clean install'
+        }
+    }
+    stage('SonarQube analysis') {
+        environment {
+          SCANNER_HOME = tool 'SonarQube'
+        }
+        steps {
+          withSonarQubeEnv(credentialsId: sonarCredentials, installationName: 'SonarQube') {
+              sh '''$SCANNER_HOME/bin/sonar-scanner \
+              -Dsonar.projectKey=$sonarProjectKey \
+              -Dsonar.projectName=$sonarProjectName \
+              -Dsonar.sources=src/ \
+              -Dsonar.java.binaries=target/classes/ \
+              -Dsonar.exclusions=src/test/java/****/*.java \
+              -Dsonar.projectVersion=${BUILD_NUMBER}-${GIT_COMMIT_SHORT}'''
+            }
+        }
+    }
+}

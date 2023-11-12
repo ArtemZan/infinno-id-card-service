@@ -1,0 +1,43 @@
+app:
+  image: image:latest
+  #contextpath: /ss/
+  serverurl: 
+  rabbiturl: rabbit-temp.irispay-prod.svc.cluster.local
+  replicas: 1
+  profile: helm-prod
+  ports: 
+    container: 8080 
+    service: 8080
+    readiness: 7777
+  resources:
+    use: true
+    requests:
+      memory: "500Mi"
+      cpu: "100m"
+    limits:
+      memory: "1500Mi"
+      cpu: "1000m"
+  pvc:
+    use: false
+    size: 10Gi
+    mountPath: /data/
+  secret: 
+    use: false
+    name: secrets
+    mountPath: /configs/
+  db: 
+    use: true
+    url: mysql.mysql.svc.cluster.local #mypostgres.postgresql.svc.cluster.local
+    user: root
+    pass: sjdhfk
+    dbname: id-cards-service_dev
+    migrations: true
+    dbtype: mysql #postgresql
+repo:
+  registry: repo.infn.dev
+  username: user
+  password: pass
+monitoring:
+  use: true
+  url: https://9291c4176dea4d409d98df362a17a584.fleet.europe-west1.gcp.cloud.es.io:443
+  token: dsfjkshdfjds

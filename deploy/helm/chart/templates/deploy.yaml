@@ -1,0 +1,114 @@
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.app.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        run: {{ .Release.Name }}
+    spec:
+      imagePullSecrets:
+        - name: {{ .Release.Name }}-repo-secret
+{{- if (or .Values.app.secret.use .Values.app.pvc.use) }}
+      volumes:
+{{- if .Values.app.secret.use }}
+      - name: {{ .Values.app.secret.name }}
+        secret:
+           secretName: {{ .Values.app.secret.name }}
+           defaultMode: 0666
+{{- end }}          
+{{- if .Values.app.pvc.use }}      
+      - name: {{ .Release.Name }}-volume
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-pvc
+{{- end }}      
+{{- end }}       
+      containers:
+      - image: {{ .Values.repo.registry }}/{{ .Values.app.image }}
+        imagePullPolicy: Always
+        name: {{ .Release.Name }}
+{{- if .Values.app.pvc.use }} 
+        resources:
+          requests:
+            memory: {{ .Values.app.resources.requests.memory }}
+            cpu: {{ .Values.app.resources.requests.cpu }}
+          limits:
+            memory: {{ .Values.app.resources.limits.memory }}
+            cpu: {{ .Values.app.resources.limits.cpu }}
+{{- end }}         
+        readinessProbe:
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 2
+          failureThreshold: 2
+          httpGet:
+            path: /actuator/health/readiness
+            port: {{ .Values.app.ports.readiness }}
+        {{- if (or .Values.app.secret.use .Values.app.pvc.use) }}         
+        volumeMounts:
+        {{- if .Values.app.pvc.use }}  
+        - name: {{ .Release.Name }}-volume
+          mountPath: {{ .Values.app.pvc.mountPath }}
+        {{- end }}
+        {{- if .Values.app.secret.use }}
+        - name: {{ .Values.app.secret.name }}
+          mountPath: {{ .Values.app.secret.mountPath }}
+        {{- end }}  
+        {{- end }}
+        env:
+        {{- if .Values.app.db.use }}
+        - name: MIGRATIONS
+          value: "{{ .Values.app.db.migrations }}"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              key:  user
+              name: {{ .Release.Name }}-db-auth
+        - name: DB_PASS
+          valueFrom:
+            secretKeyRef:
+              key:  pass
+              name: {{ .Release.Name }}-db-auth
+        - name: DB_URL
+          value: {{ .Values.app.db.url }}
+        - name: DB_NAME
+          value: {{ .Values.app.db.dbname }}
+        - name: DB_TYPE
+          value: {{ .Values.app.db.dbtype }}
+        {{- end }}
+        - name: SPRING_PROFILES_ACTIVE
+          value: {{ .Values.app.profile }}
+        - name: SERVER_PORT
+          value: '{{ .Values.app.ports.container}}'
+         {{- if .Values.monitoring.use }}
+        - name: FLEET_ENROLL
+          value: "1"
+        - name: FLEET_URL
+          value: {{ .Values.monitoring.url }}
+        - name: FLEET_ENROLLMENT_TOKEN
+          value: {{ .Values.monitoring.token }}
+        
+{{- end }}
+
+{{- if .Values.app.contextpath  }}
+        - name: SERVER_CONTEXTPATH
+          value: {{ .Values.app.contextpath }}
+{{- end }}
+        - name: SERVER_URL
+          value: {{ .Values.app.serverurl }}
+{{- if .Values.app.rabbiturl  }}
+        - name: URL_RABBITMQ
+          value: {{ .Values.app.rabbiturl }}
+{{- end }}
+        {{- range $k, $v := .Values.env }}
+        - name: {{ $k }}
+          value: {{ $v -}}
+        {{ end }}

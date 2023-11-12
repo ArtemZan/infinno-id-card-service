@@ -1,0 +1,19 @@
+FROM maven:3.6.3 as build
+WORKDIR /app
+COPY settings.xml .
+COPY pom.xml .
+RUN mvn -B -s settings.xml dependency:go-offline
+COPY src /app/src/
+RUN mvn -B -s settings.xml clean install -DskipTests=true
+
+FROM openjdk:11
+COPY --from=build /app/target/id-cards-service.jar /app.jar
+
+FROM docker.elastic.co/beats/elastic-agent:8.3.3
+USER root
+RUN apt-get update && apt-get install -y openjdk-11-jdk vim
+COPY --from=build /app/target/id-cards-service.jar /app.jar
+COPY helm/sh.sh /
+RUN chmod +x /sh.sh
+USER elastic-agent
+ENTRYPOINT ["/sh.sh"]
