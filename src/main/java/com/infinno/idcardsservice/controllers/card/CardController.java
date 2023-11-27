@@ -1,16 +1,25 @@
 package com.infinno.idcardsservice.controllers.card;
 
 import com.infinno.idcardsservice.models.Card;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.infinno.idcardsservice.repositories.CardRepository;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/card")
 public class CardController {
-    @PostMapping("")
-    void createCard(@RequestBody Card body) {
+    private CardRepository cardRepository;
 
+    @PostMapping("")
+    void createCard(@RequestBody Card body)
+    {
+        cardRepository.save(body);
+    }
+
+    @GetMapping("/invalid")
+    ArrayList<Card> getInvalidCards()
+    {
+        return cardRepository.getInvalidCards();
     }
 }
